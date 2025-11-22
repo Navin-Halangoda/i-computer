@@ -30,7 +30,7 @@ export function loginUser(req,res){
     User.find({email:email}).then(
         (users)=>{
             if (users[0]==null){
-                res.json({
+                res.status(500).json({
                     message:"User not found"
                 })
             }else{
@@ -45,14 +45,13 @@ export function loginUser(req,res){
                         isEmailVarified:user.isEmailVerified,
                         image:user.image,
                     }
-                    const token= jwt.sign(paylod,"secretkey123",{
-                        expiresIn:"3h"
+                    const token= jwt.sign(paylod,process.env.JWT_SECRET,{
+                        expiresIn:"50h"
                     })
                     res.json({message:"login is succesfully",
-                        token:token
+                        token:token,
+                        role:user.role,
                     })
-                }else{
-                    res.status(401).json({message:"invalid password"})
                 }
                 
             }

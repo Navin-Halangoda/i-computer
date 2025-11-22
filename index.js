@@ -3,14 +3,18 @@ import mongoose from "mongoose";
 import userRouter from "./Routers/userRouter.js";
 import jwt from "jsonwebtoken"
 import productRouter from "./Routers/productRouter.js";
+import cors from "cors";
+import dotenv from "dotenv"
+import orderRouter from "./Routers/orderRoueter.js";
+dotenv.config();
 
-const mongouri ="mongodb+srv://admin:kQ2MCO8IRCq57Zat@cluster0.ibvekme.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
-
+const mongouri =process.env.MONGOURI
 mongoose.connect(mongouri).then(()=>{
     console.log("mongodb is connected");
 });
 
 const app =express();
+app.use(cors());
 
 app.use((req,res,next)=>{
     const authHeader= req.header("Authorization");
@@ -19,7 +23,7 @@ app.use((req,res,next)=>{
         
         console.log(token);
 
-        jwt.verify(token,"secretkey123",(error,content)=>{
+        jwt.verify(token,process.env.JWT_SECRET,(error,content)=>{
             if(content==null){
                 res.json({
                     message:"invalid token"
@@ -41,5 +45,6 @@ app.listen(3000,()=>{
     
 });
 
-app.use("/user",userRouter)
-app.use("/product",productRouter)
+app.use("/api/user",userRouter)
+app.use("/api/product",productRouter)
+app.use("/api/orders",orderRouter)

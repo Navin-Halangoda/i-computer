@@ -27,9 +27,22 @@ const productSchema = new mongoose.Schema(
             type:Number,
             required:true
         },
+        images:{
+            type:[String],
+            required:true
+        },
+        category:{
+            type:String,
+            required:true
+        },
+        model:{
+            type:String,
+            required:true,
+            default:"standrad"
+        },
         brand:{
             type:String,
-            default:"no brand",
+            default:"Generic",
             required:true
         },
         stock:{

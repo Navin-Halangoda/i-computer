@@ -111,7 +111,7 @@ export function getProductbyId(req,res){
 
 
 
-function isAdmin(req){
+export function isAdmin(req){
      if(req.user==null){
         return false
     }
