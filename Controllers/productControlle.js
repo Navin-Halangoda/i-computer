@@ -121,3 +121,23 @@ export function isAdmin(req){
 return true
 }
 
+export async function searchproduct(req,res){
+    const query=req.params.query
+
+    try{
+        const product = await Product.find(
+            {$or:[
+                {name:{$regex:query,$options:"i"}},
+                {altname:{$elemMatch:{$regex:query,$options:"i"}}}],
+                isAvailable:true
+            }
+        )
+        return res.json(product)
+    }catch(error){
+        res.status(500).json({
+            message:"error serching product",
+            error:error.message
+         })
+    }
+}
+

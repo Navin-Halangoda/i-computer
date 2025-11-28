@@ -2,6 +2,22 @@ import axios from "axios";
 import User from "../Models/User.js";
 import bcrypt from "bcrypt"
 import jwt from "jsonwebtoken";
+import nodemailer from 'nodemailer';
+import dotenv from "dotenv";
+import Otp from "../Models/otp.js";
+dotenv.config();
+
+
+const transport = nodemailer.createTransport({
+    service:"gmail",
+    host:"smtp.gmail.com",
+    port:587,
+    secure:false,
+    auth:{
+        user:"shancreation62@gmail.com",
+        pass:process.env.GMAIL_APP_PASSWORD,
+    }
+})
 
 
 export function createUser(req,res){
@@ -35,6 +51,13 @@ export function loginUser(req,res){
                 })
             }else{
                 const user= users[0];
+                if(user.isBlocked){
+                    res.status(501).json({
+                        message:"user is blocked"
+                        
+                    })
+                    return
+                }
                 const isPasswordCorrect= bcrypt.compareSync(password,user.password)
                 if(isPasswordCorrect){
                     const paylod={
@@ -128,6 +151,12 @@ export async function googleloging(req,res){
 
 
         }else{
+            if(user.isBlocked){
+                    res.status(501).json({
+                        message:"user is blocked"
+                    })
+                    return
+                }
             const paylod={
                         email:user.email,
                         firstName:user.firstName,
@@ -153,4 +182,125 @@ export async function googleloging(req,res){
         })
     }
     
+}
+
+
+export async function sendotp(req,res){
+
+try{
+const email= req.params.email;
+
+const user =await User.findOne({
+    email:email
+})
+
+if(user==null){
+    res.status(404).json({
+        message:"user not found"
+    })
+    return
+}
+await Otp.deleteMany({
+    email:email
+})
+
+const otpcode= Math.floor(100000+Math.random()*900000).toString()
+
+const otp= new Otp({
+    email:email,
+    otp:otpcode
+})
+
+await otp.save();
+
+const message={
+    from:"shancreation62@gmail.com",
+    to:email,
+    subject:"your otp code",
+    text:"your otp code is"+ otpcode
+}
+transport.sendMail(message,(err,info)=>{
+    if(err){
+        res.status(500).json({
+            message:"Failed to send OTP",
+            error:err.message
+        })
+    }else{
+        res.json({
+            message:"OTP sent succefully"
+        })
+    }
+})}catch(error){
+    res.status(401).json({
+        message:"failed to send otp",
+        error:error.message
+    })
+}
+
+}
+
+export async function updatepassword(req,res){
+    try{
+    const otp= req.body.otp;
+    const email=req.body.email
+    const newpassword=req.body.password
+
+    const otprecord = await Otp.findOne({email:email, otp:otp});
+    
+    if(otprecord==null){
+        res.status(404).json({
+            message:"Invalid otp"
+        })
+        return;
+    }
+    await Otp.deleteMany({email:email})
+
+    const hassedpassword = bcrypt.hashSync(newpassword,10)
+
+    await User.updateOne({email:email},{$set:{password:hassedpassword,isEmailVerified:true}})
+    res.json({
+        message:"password update succefuly"
+    })
+
+}catch(error){
+    res.status(500).json({
+        message:"password update fail"
+    })
+}
+
+}
+
+export async function toogleBlocked(req,res){
+    try{
+      if(req.user== null){
+        res.json({message:"Unauthorize user"})
+        return
+    }
+
+    if(req.user.role !="admin"){
+        res.json({
+            message:"only can read by admin"
+        })
+        return
+    }
+    const email = req.params.email;
+
+    if(req.user.email===email){
+        res.json({
+            message:"do not block own email"
+        })
+        return
+    }
+    
+    const isBlocked= req.body.isBlocked
+    
+    await User.updateOne({email:email},{isBlocked:isBlocked})
+        res.json({
+            message:"status update succefully"})
+    }catch(error){
+    res.status(500).json({
+        message:"update failed",
+        error:error.message
+    })}
+
 }
