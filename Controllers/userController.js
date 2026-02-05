@@ -20,24 +20,47 @@ const transport = nodemailer.createTransport({
 })
 
 
-export function createUser(req,res){
-    const data = req.body;
-    const hasedpassword = bcrypt.hashSync(data.password,10);
-    const user=new User(
-        {
-            email:data.email,
-            firstName:data.firstName,
-            lastName:data.lastName,
-            password:hasedpassword,
-        }
-    );
-    user.save().then(
-        ()=>{
-            res.json(
-                {message:"User create succefully"}
-            )
-        }
-    )
+export async function createUser(req, res) {
+  try {
+    const { email, firstName, lastName, password } = req.body;
+    
+    if (!email || !firstName || !lastName || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "All fields are required",
+      });
+    }
+
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(409).json({
+        success: false,
+        message: "Email already registered",
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const user = new User({
+      email,
+      firstName,
+      lastName,
+      password: hashedPassword,
+    });
+
+    await user.save();
+    res.status(201).json({
+      success: true,
+      message: "User created successfully",
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
 }
 
 export function loginUser(req,res){
@@ -52,14 +75,20 @@ export function loginUser(req,res){
             }else{
                 const user= users[0];
                 if(user.isBlocked){
-                    res.status(501).json({
+                    res.status(403).json({
                         message:"user is blocked"
                         
                     })
                     return
                 }
                 const isPasswordCorrect= bcrypt.compareSync(password,user.password)
-                if(isPasswordCorrect){
+                if (isPasswordCorrect===false){
+                    res.status(401).json({
+                    message: "Invalid email or password",
+                    })
+                    return
+                }
+                            
                     const paylod={
                         email:user.email,
                         firstName:user.firstName,
@@ -75,12 +104,17 @@ export function loginUser(req,res){
                         token:token,
                         role:user.role,
                     })
-                }
+                
                 
             }
             
         }
-    )
+    ).catch((err)=>{
+        res.status(501).json({
+            message:"login fail",
+            err:err.message
+        })
+    })
 }
 
 export function getUser(req,res){

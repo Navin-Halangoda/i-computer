@@ -15,6 +15,9 @@ mongoose.connect(mongouri).then(()=>{
 
 const app =express();
 app.use(cors());
+app.use(cors({
+  origin: "http://localhost:5173",
+}));
 
 app.use((req,res,next)=>{
     const authHeader= req.header("Authorization");
