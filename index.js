@@ -6,6 +6,7 @@ import productRouter from "./Routers/productRouter.js";
 import cors from "cors";
 import dotenv from "dotenv"
 import orderRouter from "./Routers/orderRoueter.js";
+import messageRouter from "./Routers/messageRouter.js";
 dotenv.config();
 
 const mongouri =process.env.MONGOURI
@@ -51,3 +52,4 @@ app.listen(3000,()=>{
 app.use("/api/user",userRouter)
 app.use("/api/product",productRouter)
 app.use("/api/orders",orderRouter)
+app.use("/api/messages", messageRouter)
